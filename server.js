@@ -28,16 +28,18 @@ app.post('/run', (req, res) => {
     fs.writeFileSync(filePath, code);
 
     // 2. Compile the code using Icarus Verilog v12 (-g2012)
-    exec(`iverilog -g2012 -o ${outPath} ${filePath}`, { timeout: 10000 }, (compileErr, compileStdout, compileStderr) => {
+    // FIX: Added "cwd: runDir" so any generated files stay in the isolated folder
+    exec(`iverilog -g2012 -o ${outPath} ${filePath}`, { timeout: 10000, cwd: runDir }, (compileErr, compileStdout, compileStderr) => {
         if (compileErr) {
             fs.rmSync(runDir, { recursive: true, force: true });
             return res.json({ status: "error", output: compileStderr || compileErr.message });
         }
 
         // 3. Run the compiled simulation using VVP
-        exec(`vvp ${outPath}`, { timeout: 10000 }, (runErr, runStdout, runStderr) => {
+        // FIX: Added "cwd: runDir" so $dumpfile saves exactly where we are looking for it!
+        exec(`vvp ${outPath}`, { timeout: 10000, cwd: runDir }, (runErr, runStdout, runStderr) => {
             
-            // NEW: Look for a generated .vcd file BEFORE we clean up the directory
+            // Look for a generated .vcd file BEFORE we clean up the directory
             let vcdData = null;
             try {
                 const files = fs.readdirSync(runDir);
