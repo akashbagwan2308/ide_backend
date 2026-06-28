@@ -117,45 +117,44 @@ app.post('/run', authenticateToken, (req, res) => {
 });
 
 // ==========================================
-// 4. SECURED GOOGLE DRIVE UPLOAD ENDPOINT
+// 4. SECURED GITHUB UPLOAD ENDPOINT
 // ==========================================
-app.post('/save-drive', authenticateToken, async (req, res) => {
-    const { filename, fileBase64, folderId } = req.body;
+app.post('/save-github', authenticateToken, async (req, res) => {
+    const { filename, fileBase64, owner, repo, pat } = req.body;
 
-    if (!filename || !fileBase64 || !folderId) {
-        return res.status(400).json({ status: 'error', message: 'Missing required parameters.' });
+    if (!filename || !fileBase64 || !owner || !repo || !pat) {
+        return res.status(400).json({ status: 'error', message: 'Missing required GitHub parameters.' });
     }
 
     try {
-        // Forward the request to the hidden Google Apps Script URL
-        const googleResponse = await fetch(GOOGLE_WEB_APP_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' }, // Apps Script requires text/plain
+        // We use the GitHub REST API to create a file directly
+        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filename}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${pat}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'User-Agent': 'LogicSilicon-IDE'
+            },
             body: JSON.stringify({
-                action: 'saveCodeToDrive',
-                filename: filename,
-                fileBase64: fileBase64,
-                folderId: folderId
+                message: `Auto-saved ${filename} via LogicSilicon Playground`,
+                content: fileBase64 // GitHub expects the content in Base64
             })
         });
 
-        // Get raw text first to prevent JSON parse crashes
-        const textResponse = await googleResponse.text(); 
-        
-        try {
-            // Attempt to parse it as JSON
-            const data = JSON.parse(textResponse);
-            res.json(data); 
-        } catch (parseError) {
-            console.error("Google Apps Script returned an HTML Error Page instead of JSON. Output:", textResponse);
-            res.status(500).json({ status: 'error', message: 'Google Apps Script failed to respond properly. Check your New Deployment.' });
+        const data = await response.json();
+
+        if (response.ok) {
+            res.json({ status: 'success', url: data.content.html_url });
+        } else {
+            // GitHub returns errors if the PAT is invalid or repo doesn't exist
+            res.status(response.status).json({ status: 'error', message: data.message });
         }
-        
     } catch (error) {
-        console.error("Drive Upload Error:", error);
-        res.status(500).json({ status: 'error', message: 'Internal server error while connecting to Google Drive.' });
+        console.error("GitHub Upload Error:", error);
+        res.status(500).json({ status: 'error', message: 'Internal server error while connecting to GitHub.' });
     }
 });
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
