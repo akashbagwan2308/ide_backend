@@ -116,6 +116,39 @@ app.post('/run', authenticateToken, (req, res) => {
     });
 });
 
+// ==========================================
+// 4. SECURED GOOGLE DRIVE UPLOAD ENDPOINT
+// ==========================================
+app.post('/save-drive', authenticateToken, async (req, res) => {
+    const { filename, fileBase64, folderId } = req.body;
+
+    if (!filename || !fileBase64 || !folderId) {
+        return res.status(400).json({ status: 'error', message: 'Missing required parameters.' });
+    }
+
+    try {
+        // Forward the request to the hidden Google Apps Script URL
+        const googleResponse = await fetch(GOOGLE_WEB_APP_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' }, // Apps Script requires text/plain
+            body: JSON.stringify({
+                action: 'saveCodeToDrive',
+                filename: filename,
+                fileBase64: fileBase64,
+                folderId: folderId
+            })
+        });
+
+        const data = await googleResponse.json();
+        
+        // Pass the Apps Script response back to the frontend
+        res.json(data); 
+    } catch (error) {
+        console.error("Drive Upload Error:", error);
+        res.status(500).json({ status: 'error', message: 'Internal server error while connecting to Google Drive.' });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Secured SystemVerilog Compilation Server (v12) running on port ${PORT}`);
