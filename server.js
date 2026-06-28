@@ -139,10 +139,18 @@ app.post('/save-drive', authenticateToken, async (req, res) => {
             })
         });
 
-        const data = await googleResponse.json();
+        // Get raw text first to prevent JSON parse crashes
+        const textResponse = await googleResponse.text(); 
         
-        // Pass the Apps Script response back to the frontend
-        res.json(data); 
+        try {
+            // Attempt to parse it as JSON
+            const data = JSON.parse(textResponse);
+            res.json(data); 
+        } catch (parseError) {
+            console.error("Google Apps Script returned an HTML Error Page instead of JSON. Output:", textResponse);
+            res.status(500).json({ status: 'error', message: 'Google Apps Script failed to respond properly. Check your New Deployment.' });
+        }
+        
     } catch (error) {
         console.error("Drive Upload Error:", error);
         res.status(500).json({ status: 'error', message: 'Internal server error while connecting to Google Drive.' });
