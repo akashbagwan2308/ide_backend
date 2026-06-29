@@ -1,7 +1,7 @@
 {
-  "name": "verilog-compiler-api",
-  "version": "1.0.0",
-  "description": "A free API to compile Verilog code using iverilog",
+  "name": "logicsilicon-unified-api",
+  "version": "2.0.0",
+  "description": "Unified API for Icarus Verilog Simulation and Yosys Synthesis",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
