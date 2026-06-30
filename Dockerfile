@@ -1,18 +1,12 @@
-# Use a Node.js image based on Debian (more compatible than Alpine for EDA tools)
-FROM node:18-bullseye-slim
+# Use a lightweight Linux image with Node.js installed
+FROM node:18-alpine
 
-# Install dependencies and tools
-RUN apt-get update && apt-get install -y \
-    git build-base autoconf bison flex gperf readline-dev \
-    gcc g++ make pkg-config libreadline-dev tcl-dev libffi-dev \
-    git graphviz xdot pkg-config python3 libftdi-dev gawk \
-    tcl libffi-dev libreadline-dev && \
-    apt-get clean
+# Install build dependencies required to compile Icarus Verilog from source
+RUN apk update && apk add --no-cache \
+    git build-base autoconf bison flex gperf readline-dev
 
-# 1. Install Yosys from official repository
-RUN apt-get install -y yosys
-
-# 2. Build Icarus Verilog from source
+# Clone the v12 branch of Icarus Verilog and build it from source
+# This version has vastly superior SystemVerilog (IEEE 1800-2012) support
 RUN git clone --branch v12-branch https://github.com/steveicarus/iverilog.git /tmp/iverilog && \
     cd /tmp/iverilog && \
     sh autoconf.sh && \
