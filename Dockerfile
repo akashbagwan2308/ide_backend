@@ -1,9 +1,10 @@
 # Use a lightweight Linux image with Node.js installed
 FROM node:18-alpine
 
-# Install build dependencies required to compile Icarus Verilog from source
+# Install build dependencies for Icarus, plus Yosys for the Synthesis Engine
 RUN apk update && apk add --no-cache \
-    git build-base autoconf bison flex gperf readline-dev
+    git build-base autoconf bison flex gperf readline-dev \
+    yosys
 
 # Clone the v12 branch of Icarus Verilog and build it from source
 # This version has vastly superior SystemVerilog (IEEE 1800-2012) support
